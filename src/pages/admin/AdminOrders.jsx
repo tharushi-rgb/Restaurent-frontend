@@ -39,7 +39,14 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      const endpoint = filter === 'active' ? '/orders/active' : '/orders';
+      let endpoint;
+      if (filter === 'active') {
+        endpoint = '/orders/active';
+      } else if (filter === 'completed') {
+        endpoint = '/orders?status=delivered';
+      } else {
+        endpoint = '/orders';
+      }
       const { data } = await api.get(endpoint);
       setOrders(data.orders);
     } catch (error) {
@@ -68,24 +75,21 @@ export default function AdminOrders() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-900 text-white px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-gray-800 rounded-lg">
-              <ChevronLeft size={24} />
-            </button>
-            <h1 className="text-xl font-bold">Orders</h1>
-          </div>
-          <button onClick={fetchOrders} className="p-2 hover:bg-gray-800 rounded-lg">
-            <RefreshCw size={20} />
-          </button>
+      {/* Page Header */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <p className="text-sm text-gray-500">Track and manage all orders</p>
         </div>
-      </header>
+        <button onClick={fetchOrders} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600">
+          <RefreshCw size={20} />
+        </button>
+      </div>
 
       {/* Filter Tabs */}
       <div className="px-4 py-3 bg-white border-b border-gray-100">
         <div className="flex gap-2">
-          {['active', 'all'].map(f => (
+          {['active', 'completed', 'all'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

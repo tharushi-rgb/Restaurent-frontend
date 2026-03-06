@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ShoppingCart, X } from 'lucide-react';
+import { ShoppingCart, X, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore, useAuthStore, useOrderStore } from '../../store';
 import api from '../../api';
+import { PageHeaderDual } from '../../components/CustomerLayout';
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { items, removeItem, getTotal, clearCart, tableNumber } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { setCurrentOrder } = useOrderStore();
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +27,7 @@ export default function CartPage() {
     setLoading(true);
     try {
       const orderItems = items.map(item => ({
-        menuItemId: item.dishId,
+        menuItemId: item.dishId || item._id || item.id,
         quantity: item.quantity,
         customizations: {
           portion: item.customizations?.portion || 'Standard',
@@ -55,18 +56,12 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center max-w-md mx-auto">
-        <button onClick={() => navigate('/menu')} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold tracking-tight text-gray-900 ml-2">Your Cart</h1>
-      </header>
+    <div className="h-full bg-gray-50 relative overflow-hidden flex flex-col">
 
-      <div className="pt-20 px-4 pb-48">
-        <h2 className="text-2xl font-bold mb-6">Your Order</h2>
-        
+      {/* Shared header with hamburger sidebar */}
+      <PageHeaderDual title="Your Cart" onBack={() => navigate(-1)} />
+
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
         {items.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -132,7 +127,7 @@ export default function CartPage() {
                     </div>
                     {item.customizations?.specialInstructions && (
                       <p className="text-[11px] text-gray-500 italic mt-1.5 bg-yellow-50 px-2 py-1 rounded-lg">
-                        📝 {item.customizations.specialInstructions}
+                        Note: {item.customizations.specialInstructions}
                       </p>
                     )}
                   </div>
@@ -143,9 +138,9 @@ export default function CartPage() {
         )}
       </div>
 
-      {/* Fixed Bottom */}
+      {/* Bottom Checkout */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-100 max-w-md mx-auto">
+        <div className="flex-shrink-0 p-6 bg-white border-t border-gray-100">
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
@@ -163,7 +158,7 @@ export default function CartPage() {
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-primary-200/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             {loading ? (
               <>

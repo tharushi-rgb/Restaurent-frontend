@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Clock, CheckCircle, AlertTriangle, Bell, RefreshCw, Zap, ArrowUp } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, Bell, RefreshCw, Zap, ArrowUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getSocket, joinKitchenRoom } from '../../socket';
 import api from '../../api';
@@ -14,7 +13,6 @@ const statusColors = {
 };
 
 export default function KitchenDisplay() {
-  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
@@ -43,7 +41,7 @@ export default function KitchenDisplay() {
     });
 
     socket.on('waiter-request', (data) => {
-      toast(`🙋 Waiter requested — Table ${data.tableNumber}`, { icon: '🔔', duration: 8000 });
+      toast(`Waiter requested — Table ${data.tableNumber}`, { duration: 8000 });
       setNotifications(prev => [...prev, {
         id: Date.now(),
         message: `Waiter requested at Table ${data.tableNumber}`,
@@ -52,7 +50,7 @@ export default function KitchenDisplay() {
     });
 
     socket.on('bill-request', (data) => {
-      toast(`💳 Bill requested — Table ${data.tableNumber}`, { icon: '🔔', duration: 8000 });
+      toast(`Bill requested — Table ${data.tableNumber}`, { duration: 8000 });
       setNotifications(prev => [...prev, {
         id: Date.now(),
         message: `Bill requested at Table ${data.tableNumber}`,
@@ -61,7 +59,7 @@ export default function KitchenDisplay() {
     });
 
     socket.on('service-request', (data) => {
-      toast(`📢 ${data.type} — Table ${data.tableNumber}`, { icon: '🔔', duration: 8000 });
+      toast(`Service request: ${data.type} — Table ${data.tableNumber}`, { duration: 8000 });
     });
 
     return () => {
@@ -125,31 +123,28 @@ export default function KitchenDisplay() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="bg-black px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/admin')} className="p-2 hover:bg-gray-800 rounded-lg">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-bold">Kitchen Display</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header — matches other admin pages */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Kitchen Display</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{orders.length} active order{orders.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">
-            {orders.length} active orders
-          </span>
-          <button onClick={fetchOrders} className="p-2 hover:bg-gray-800 rounded-lg">
-            <RefreshCw size={20} />
-          </button>
-        </div>
-      </header>
+        <button
+          onClick={fetchOrders}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors"
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
+      </div>
 
       {/* Notifications */}
       {notifications.length > 0 && (
-        <div className="px-4 py-2 bg-orange-600">
+        <div className="px-6 py-2 bg-orange-50 border-b border-orange-200">
           <div className="flex items-center gap-2">
-            <Bell size={16} />
-            <span className="text-sm font-medium">
+            <Bell size={16} className="text-orange-600" />
+            <span className="text-sm font-medium text-orange-700">
               {notifications[notifications.length - 1].message}
             </span>
           </div>
@@ -158,87 +153,99 @@ export default function KitchenDisplay() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-12 h-12 border-4 border-gray-700 border-t-orange-500 rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="p-4 grid grid-cols-4 gap-4 h-[calc(100vh-80px)] overflow-hidden">
+        <div className="flex-1 p-4 grid grid-cols-4 gap-4 overflow-auto">
           {/* New Orders */}
-          <div className="flex flex-col">
-            <h2 className="text-lg font-bold mb-3 text-blue-400 flex items-center gap-2">
-              <Clock size={20} />
+          <div className="flex flex-col min-h-0">
+            <h2 className="text-base font-bold mb-3 text-blue-600 flex items-center gap-2">
+              <Clock size={18} />
               New ({groupedOrders.received.length})
             </h2>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {groupedOrders.received.map(order => (
-                <OrderCard 
-                  key={order._id || order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order._id || order.id}
+                  order={order}
                   onAction={() => updateStatus(order._id || order.id, 'preparing')}
                   onPriority={(p) => setPriority(order._id || order.id, p)}
                   actionLabel="Start"
                   statusColor={statusColors.received}
                 />
               ))}
+              {groupedOrders.received.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">No new orders</div>
+              )}
             </div>
           </div>
 
           {/* Preparing */}
-          <div className="flex flex-col">
-            <h2 className="text-lg font-bold mb-3 text-yellow-400 flex items-center gap-2">
-              <Clock size={20} />
+          <div className="flex flex-col min-h-0">
+            <h2 className="text-base font-bold mb-3 text-yellow-600 flex items-center gap-2">
+              <Clock size={18} />
               Preparing ({groupedOrders.preparing.length})
             </h2>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {groupedOrders.preparing.map(order => (
-                <OrderCard 
-                  key={order._id || order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order._id || order.id}
+                  order={order}
                   onAction={() => updateStatus(order._id || order.id, 'quality_check')}
                   onPriority={(p) => setPriority(order._id || order.id, p)}
                   actionLabel="Ready for QC"
                   statusColor={statusColors.preparing}
                 />
               ))}
+              {groupedOrders.preparing.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">Nothing preparing</div>
+              )}
             </div>
           </div>
 
           {/* Quality Check */}
-          <div className="flex flex-col">
-            <h2 className="text-lg font-bold mb-3 text-purple-400 flex items-center gap-2">
-              <CheckCircle size={20} />
+          <div className="flex flex-col min-h-0">
+            <h2 className="text-base font-bold mb-3 text-purple-600 flex items-center gap-2">
+              <CheckCircle size={18} />
               Quality Check ({groupedOrders.quality_check.length})
             </h2>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {groupedOrders.quality_check.map(order => (
-                <OrderCard 
-                  key={order._id || order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order._id || order.id}
+                  order={order}
                   onAction={() => updateStatus(order._id || order.id, 'ready')}
                   onPriority={(p) => setPriority(order._id || order.id, p)}
                   actionLabel="Approve"
                   statusColor={statusColors.quality_check}
                 />
               ))}
+              {groupedOrders.quality_check.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">No QC items</div>
+              )}
             </div>
           </div>
 
-          {/* Ready for Pickup */}
-          <div className="flex flex-col">
-            <h2 className="text-lg font-bold mb-3 text-green-400 flex items-center gap-2">
-              <CheckCircle size={20} />
+          {/* Ready */}
+          <div className="flex flex-col min-h-0">
+            <h2 className="text-base font-bold mb-3 text-green-600 flex items-center gap-2">
+              <CheckCircle size={18} />
               Ready ({groupedOrders.ready.length})
             </h2>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {groupedOrders.ready.map(order => (
-                <OrderCard 
-                  key={order._id || order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order._id || order.id}
+                  order={order}
                   onAction={() => updateStatus(order._id || order.id, 'delivered')}
                   onPriority={(p) => setPriority(order._id || order.id, p)}
                   actionLabel="Delivered"
                   statusColor={statusColors.ready}
                 />
               ))}
+              {groupedOrders.ready.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">None ready yet</div>
+              )}
             </div>
           </div>
         </div>

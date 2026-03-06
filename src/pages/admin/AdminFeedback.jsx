@@ -43,22 +43,16 @@ export default function AdminFeedback() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-900 text-white px-6 py-4">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-gray-800 rounded-lg">
-              <ChevronLeft size={24} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">Customer Feedback</h1>
-              <p className="text-sm text-gray-400">{stats?.totalFeedback || 0} total reviews</p>
-            </div>
-          </div>
-          <button onClick={fetchData} className="p-2 hover:bg-gray-800 rounded-lg">
-            <RefreshCw size={20} />
-          </button>
+      {/* Page Header */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Customer Feedback</h1>
+          <p className="text-sm text-gray-500">{stats?.totalFeedback || 0} total reviews</p>
         </div>
-      </header>
+        <button onClick={fetchData} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600">
+          <RefreshCw size={20} />
+        </button>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -68,11 +62,11 @@ export default function AdminFeedback() {
         <div className="max-w-6xl mx-auto p-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <StatBox label="Food Rating" value={stats?.avgFoodRating || '0'} icon="🍽️" />
-            <StatBox label="Service Rating" value={stats?.avgServiceRating || '0'} icon="🤝" />
-            <StatBox label="Overall Rating" value={stats?.avgOverallRating || '0'} icon="⭐" />
-            <StatBox label="Would Recommend" value={`${stats?.recommendationRate || 0}%`} icon="👍" />
-            <StatBox label="Total Reviews" value={stats?.totalFeedback || 0} icon="📝" />
+            <StatBox label="Food Rating" value={stats?.avgFoodRating || '0'} icon="food" />
+            <StatBox label="Service Rating" value={stats?.avgServiceRating || '0'} icon="service" />
+            <StatBox label="Overall Rating" value={stats?.avgOverallRating || '0'} icon="overall" />
+            <StatBox label="Would Recommend" value={`${stats?.recommendationRate || 0}%`} icon="recommend" />
+            <StatBox label="Total Reviews" value={stats?.totalFeedback || 0} icon="total" />
           </div>
 
           {/* Filter Tabs */}

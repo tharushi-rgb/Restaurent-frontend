@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store';
+import { PageHeaderDual } from '../../components/CustomerLayout';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -20,7 +21,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Get health profile from navigation state if coming from health profile page
   const healthProfile = location.state?.healthProfile;
 
   const handleChange = (e) => {
@@ -51,7 +51,6 @@ export default function RegisterPage() {
     try {
       const result = await register({ name, email, phone, password });
       if (result.success) {
-        // If there's health profile data, save it
         if (healthProfile) {
           await updateHealthProfile(healthProfile);
         }
@@ -68,126 +67,130 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-full bg-white flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center max-w-md mx-auto">
-        <button onClick={() => navigate('/')} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold tracking-tight text-gray-900 ml-2">Sign Up</h1>
-      </header>
+      <PageHeaderDual
+        title="Create Account"
+        onBack={() => navigate(-1)}
+      />
 
-      <div className="pt-24 px-6 pb-24">
+      {/* Main content */}
+      <div className="flex-1 bg-white px-6 pt-6 pb-4 flex flex-col overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="flex-1 flex flex-col"
         >
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-500">Join VibeDine for a personalized experience</p>
+          {/* Welcome section */}
+          <div className="mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-3">
+              <UserPlus size={24} className="text-orange-600" />
+            </div>
+            <h1 className="text-xl font-extrabold text-gray-900 mb-1">Create Account</h1>
+            <p className="text-gray-400 text-sm">Join VibeDine for a personalized experience</p>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            {/* Name Input */}
+          {healthProfile && (
+            <div className="p-3.5 bg-green-50 rounded-2xl border border-green-100 mb-5">
+              <p className="text-green-700 text-xs font-medium">
+                Your health profile will be saved with your account
+              </p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleRegister} className="space-y-3 flex-1">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Full Name *</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Full Name *</label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
               </div>
             </div>
 
-            {/* Email Input */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Email *</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Email *</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="your@email.com"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
               </div>
             </div>
 
-            {/* Phone Input */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Phone (optional)</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Phone (optional)</label>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="555-0123"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
               </div>
             </div>
 
-            {/* Password Input */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Password *</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Password *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Min. 6 chars"
+                    className="w-full pl-10 pr-3 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Confirm *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Repeat"
+                    className="w-full pl-10 pr-3 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Confirm Password Input */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Confirm Password *</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="flex items-center gap-1.5 text-xs text-gray-400"
+              >
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPassword ? 'Hide' : 'Show'} passwords
+              </button>
             </div>
 
-            {healthProfile && (
-              <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
-                <p className="text-green-700 text-sm">
-                  ✓ Your health profile will be saved with your account
-                </p>
-              </div>
-            )}
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200 mt-6 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-primary-200/40 disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-2"
             >
               {loading ? (
                 <>
@@ -200,12 +203,13 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-500">
+          {/* Bottom link */}
+          <div className="mt-auto pt-3">
+            <p className="text-center text-sm text-gray-500">
               Already have an account?{' '}
               <button 
                 onClick={() => navigate('/login')}
-                className="text-orange-600 font-semibold"
+                className="text-primary-600 font-semibold"
               >
                 Sign In
               </button>

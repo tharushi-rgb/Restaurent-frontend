@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  ChevronLeft, Sparkles, Heart, TrendingUp, AlertCircle, 
-  User, Star, Leaf, Zap, ShoppingCart, ChevronRight, Brain
+import {
+  Sparkles, Heart, TrendingUp, AlertCircle,
+  Star, Leaf, ShoppingCart, ChevronRight, Brain, Zap, User
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore, useCartStore } from '../../store';
 import api from '../../api';
+import { PageHeader } from '../../components/CustomerLayout';
 
-const goalIcons = {
-  'Weight Loss': '🏃',
-  'Muscle Gain': '💪',
-  'Low Sodium': '🧂',
-  'Keto': '🥑',
-  'Vegan': '🌱',
-  'High Protein': '🥩'
+// Goal label to icon map (no emojis)
+const goalIconMap = {
+  'Weight Loss': Zap,
+  'Muscle Gain': TrendingUp,
+  'Low Sodium': Heart,
+  'Keto': Leaf,
+  'Vegan': Leaf,
+  'High Protein': Brain,
 };
 
 // Recommendation reason tag component
@@ -60,7 +62,7 @@ export default function RecommendationsPage() {
         setRecommendations(data.recommendations || []);
       } else {
         // For non-logged-in users, fetch popular items
-        const { data } = await api.get('/recommendations/popular');
+        const { data } = await api.get('/recommendations/quick');
         setRecommendations(data.recommendations || []);
       }
     } catch (error) {
@@ -85,33 +87,76 @@ export default function RecommendationsPage() {
   const userAllergies = user?.healthProfile?.allergies || [];
   const dietaryPlan = user?.healthProfile?.dietaryPlan;
 
+  const getGoalMatchScore = (rec, goal) => {
+    const dish = rec.item || rec.menuItem || rec;
+    const nutrition = dish.nutritionPerServing || {};
+    const reasons = (rec.reasons || []).map((reason) => (typeof reason === 'string' ? reason : reason?.text || '').toLowerCase());
+
+    let score = 0;
+    const backendGoal = (rec.matchBreakdown?.goal || 0) / 100;
+    const backendMl = (rec.matchBreakdown?.ml || 0) / 100;
+    score += backendGoal * 2;
+    score += backendMl * 1.5;
+
+    if (goal === 'Weight Loss') {
+      if ((nutrition.calories ?? 9999) <= 500) score += 2;
+      if ((nutrition.fiber ?? 0) >= 3) score += 1;
+      if (reasons.some((r) => r.includes('low calorie') || r.includes('weight loss'))) score += 2;
+    }
+
+    if (goal === 'Muscle Gain') {
+      if ((nutrition.protein ?? 0) >= 25) score += 2;
+      if ((nutrition.calories ?? 0) >= 350) score += 1;
+      if (reasons.some((r) => r.includes('muscle') || r.includes('protein'))) score += 2;
+    }
+
+    if (goal === 'Low Sodium') {
+      if ((nutrition.sodium ?? 9999) <= 400) score += 2;
+      if (reasons.some((r) => r.includes('low sodium') || r.includes('heart'))) score += 2;
+    }
+
+    if (goal === 'High Protein') {
+      if ((nutrition.protein ?? 0) >= 20) score += 2;
+      if (reasons.some((r) => r.includes('protein'))) score += 2;
+    }
+
+    if (goal === 'Keto') {
+      if ((nutrition.carbs ?? 9999) <= 15) score += 2;
+      if ((nutrition.fat ?? 0) >= 15) score += 1;
+      if (reasons.some((r) => r.includes('keto'))) score += 2;
+    }
+
+    if (goal === 'Vegan') {
+      if (!dish.allergens?.includes('Dairy') && !dish.allergens?.includes('Eggs') && !dish.allergens?.includes('Fish') && !dish.allergens?.includes('Shellfish')) score += 2;
+      if (reasons.some((r) => r.includes('vegan'))) score += 2;
+    }
+
+    return score;
+  };
+
   const filteredRecommendations = selectedGoal
-    ? recommendations.filter(r => 
-        r.reasons?.some(reason => reason.text?.toLowerCase().includes(selectedGoal.toLowerCase()))
-      )
+    ? (() => {
+        const ranked = recommendations
+          .map((rec) => ({ rec, matchScore: getGoalMatchScore(rec, selectedGoal) }))
+          .sort((a, b) => b.matchScore - a.matchScore || (b.rec.score || 0) - (a.rec.score || 0));
+
+        const directMatches = ranked.filter((r) => r.matchScore > 0).map((r) => r.rec);
+        if (directMatches.length > 0) return directMatches;
+
+        return ranked.slice(0, 1).map((r) => r.rec);
+      })()
     : recommendations;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between max-w-md mx-auto">
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/menu')} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">For You</h1>
-        </div>
-        <button onClick={() => navigate('/cart')} className="p-2 hover:bg-gray-100 rounded-full transition-colors relative">
-          <ShoppingCart size={22} className="text-gray-600" />
-          {getItemCount() > 0 && (
-            <span className="absolute top-1 right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
-              {getItemCount()}
-            </span>
-          )}
-        </button>
-      </header>
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+      {/* Shared header with hamburger sidebar */}
+      <PageHeader
+        title="AI Picks For You"
+        showCart
+        gradient="from-purple-600 via-purple-500 to-pink-500"
+      />
 
-      <div className="pt-20 px-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 pb-8">
         {/* AI Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -137,10 +182,10 @@ export default function RecommendationsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-6"
+            className="mb-3"
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Your Profile</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Profile</h3>
               <button 
                 onClick={() => navigate('/health-profile')}
                 className="text-xs text-orange-600 font-semibold flex items-center gap-1"
@@ -149,29 +194,34 @@ export default function RecommendationsPage() {
               </button>
             </div>
             
-            <div className="bg-white rounded-2xl p-4 border border-gray-100">
+            <div className="bg-white rounded-2xl p-3 border border-gray-100">
               {/* Goals */}
               {userGoals.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs text-gray-400 font-medium mb-2">Goals</p>
-                  <div className="flex flex-wrap gap-2">
-                    {userGoals.map(goal => (
-                      <span key={goal} className="text-sm bg-orange-50 text-orange-600 px-3 py-1 rounded-full font-medium">
-                        {goalIcons[goal] || '🎯'} {goal}
-                      </span>
-                    ))}
+                <div className="mb-2">
+                  <p className="text-xs text-gray-400 font-medium mb-1">Goals</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {userGoals.map(goal => {
+                      const GoalIcon = goalIconMap[goal] || Sparkles;
+                      return (
+                        <span key={goal} className="inline-flex items-center gap-1 text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-medium">
+                          <GoalIcon size={10} />
+                          {goal}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
               
               {/* Allergies */}
               {userAllergies.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs text-gray-400 font-medium mb-2">Avoiding</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mb-2">
+                  <p className="text-xs text-gray-400 font-medium mb-1">Avoiding</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {userAllergies.map(allergy => (
-                      <span key={allergy} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full font-medium">
-                        ⚠️ {allergy}
+                      <span key={allergy} className="inline-flex items-center gap-1 text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                        <AlertCircle size={9} />
+                        {allergy}
                       </span>
                     ))}
                   </div>
@@ -181,9 +231,10 @@ export default function RecommendationsPage() {
               {/* Dietary Plan */}
               {dietaryPlan && (
                 <div>
-                  <p className="text-xs text-gray-400 font-medium mb-2">Diet</p>
-                  <span className="text-sm bg-green-50 text-green-600 px-3 py-1 rounded-full font-medium">
-                    🌿 {dietaryPlan}
+                  <p className="text-xs text-gray-400 font-medium mb-1">Diet</p>
+                  <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">
+                    <Leaf size={10} />
+                    {dietaryPlan}
                   </span>
                 </div>
               )}
@@ -191,34 +242,37 @@ export default function RecommendationsPage() {
           </motion.div>
         )}
 
-        {/* Goal Filter Pills */}
-        {userGoals.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 mb-2">
-            <button
-              onClick={() => setSelectedGoal(null)}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-                selectedGoal === null
-                  ? 'bg-orange-600 text-white border-orange-600'
-                  : 'bg-white text-gray-600 border-gray-100'
-              }`}
-            >
-              All Picks
-            </button>
-            {userGoals.map(goal => (
+        {/* Goal Filter Pills — always show common goals */}
+        {(() => {
+          const displayGoals = userGoals.length > 0 ? userGoals : ['Weight Loss', 'Muscle Gain', 'Low Sodium', 'High Protein'];
+          return (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 mb-2">
               <button
-                key={goal}
-                onClick={() => setSelectedGoal(selectedGoal === goal ? null : goal)}
-                className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-                  selectedGoal === goal
+                onClick={() => setSelectedGoal(null)}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                  selectedGoal === null
                     ? 'bg-orange-600 text-white border-orange-600'
                     : 'bg-white text-gray-600 border-gray-100'
                 }`}
               >
-                {goalIcons[goal]} {goal}
+                All Picks
               </button>
-            ))}
-          </div>
-        )}
+              {displayGoals.map(goal => (
+                <button
+                  key={goal}
+                  onClick={() => setSelectedGoal(selectedGoal === goal ? null : goal)}
+                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1 ${
+                    selectedGoal === goal
+                      ? 'bg-orange-600 text-white border-orange-600'
+                      : 'bg-white text-gray-600 border-gray-100'
+                  }`}
+                >
+                  {(() => { const GI = goalIconMap[goal]; return GI ? <GI size={11} /> : null; })()} {goal}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Not Logged In Prompt */}
         {!isAuthenticated && (
@@ -272,10 +326,10 @@ export default function RecommendationsPage() {
         ) : (
           <div className="space-y-4">
             {filteredRecommendations.map((item, index) => {
-              const dish = item.menuItem || item;
+              const dish = item.item || item.menuItem || item;
               const conflictingAllergens = (dish.allergens || []).filter(a => userAllergies.includes(a));
               const hasConflict = conflictingAllergens.length > 0;
-              const matchScore = item.score ? Math.round(item.score * 100) : null;
+              const matchScore = item.score ? (item.score > 1 ? Math.round(item.score) : Math.round(item.score * 100)) : null;
 
               return (
                 <motion.div
@@ -294,7 +348,7 @@ export default function RecommendationsPage() {
                         alt={dish.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/96?text=🍽️';
+                          e.target.src = 'https://via.placeholder.com/96?text=Dish';
                         }}
                       />
                       {matchScore && (
@@ -315,9 +369,11 @@ export default function RecommendationsPage() {
 
                       {/* Reason Tags */}
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {(item.reasons || []).slice(0, 3).map((reason, i) => (
-                          <ReasonTag key={i} reason={reason.text} type={reason.type} />
-                        ))}
+                        {(item.reasons || []).slice(0, 3).map((reason, i) => {
+                          const text = typeof reason === 'string' ? reason : reason.text || '';
+                          const type = typeof reason === 'string' ? (text.includes('Popular') ? 'popular' : text.includes('AI') ? 'ml' : 'health') : reason.type;
+                          return <ReasonTag key={i} reason={text} type={type} />;
+                        })}
                       </div>
 
                       {/* Quick Nutrition */}

@@ -7,13 +7,20 @@ const api = axios.create({
   },
 });
 
-// Add token to requests if available
+// Add token to requests if available (skip for login endpoints)
 api.interceptors.request.use((config) => {
-  const storedAuth = localStorage.getItem('auth-storage');
-  if (storedAuth) {
-    const { state } = JSON.parse(storedAuth);
-    if (state?.token) {
-      config.headers.Authorization = `Bearer ${state.token}`;
+  const isLoginRoute = config.url?.includes('/auth/login') || config.url?.includes('/auth/admin/login') || config.url?.includes('/auth/register');
+  if (!isLoginRoute) {
+    const storedAuth = localStorage.getItem('auth-storage');
+    if (storedAuth) {
+      try {
+        const { state } = JSON.parse(storedAuth);
+        if (state?.token) {
+          config.headers.Authorization = `Bearer ${state.token}`;
+        }
+      } catch (e) {
+        // corrupt storage, ignore
+      }
     }
   }
   return config;
@@ -24,10 +31,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth-storage');
-      // Don't redirect if already on login page
-      if (!window.location.pathname.includes('login')) {
-        // window.location.href = '/';
+      // Only wipe auth-storage when the token is explicitly rejected (not just server errors)
+      const url = error.config?.url || '';
+      const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/admin/login') || url.includes('/auth/register');
+      const message = error.response?.data?.message || '';
+      // Only clear storage if backend explicitly says token is bad/missing, not for other 401s
+      const isTokenRejection = message.includes('token') || message.includes('Not authorized, no token');
+      if (!isAuthRoute && isTokenRejection) {
+        localStorage.removeItem('auth-storage');
       }
     }
     return Promise.reject(error);

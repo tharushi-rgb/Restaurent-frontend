@@ -12,7 +12,7 @@ const COLORS = ['#f97316', '#3b82f6', '#10b981', '#a855f7', '#ef4444', '#06b6d4'
 
 export default function AdminAnalytics() {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState('7d');
+  const [period, setPeriod] = useState('30d');
   const [analytics, setAnalytics] = useState(null);
   const [serviceMetrics, setServiceMetrics] = useState(null);
   const [feedbackStats, setFeedbackStats] = useState(null);
@@ -42,39 +42,32 @@ export default function AdminAnalytics() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-gray-900 text-white px-6 py-4">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-gray-800 rounded-lg">
-              <ChevronLeft size={24} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">Analytics & Reports</h1>
-              <p className="text-sm text-gray-400">Performance insights & trends</p>
-            </div>
-          </div>
-          
-          {/* Period Selector */}
-          <div className="flex gap-2">
-            {[
-              { key: '7d', label: '7 Days' },
-              { key: '30d', label: '30 Days' },
-              { key: '90d', label: '90 Days' }
-            ].map(p => (
-              <button
-                key={p.key}
-                onClick={() => setPeriod(p.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  period === p.key ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+      {/* Page Header */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
+          <p className="text-sm text-gray-500">Performance insights & trends</p>
         </div>
-      </header>
+        
+        {/* Period Selector */}
+        <div className="flex gap-2">
+          {[
+            { key: '7d', label: '7 Days' },
+            { key: '30d', label: '30 Days' },
+            { key: '90d', label: '90 Days' }
+          ].map(p => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                period === p.key ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -131,17 +124,22 @@ export default function AdminAnalytics() {
                   <LineChart data={analytics?.revenueByDay || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="_id" 
+                      dataKey="date" 
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       tickFormatter={(val) => {
-                        const d = new Date(val);
-                        return `${d.getMonth()+1}/${d.getDate()}`;
+                        if (!val) return '';
+                        const [y, m, d] = val.split('-');
+                        return `${parseInt(m)}/${parseInt(d)}`;
                       }}
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={(v) => `$${v}`} />
                     <Tooltip 
                       formatter={(val) => [`$${val.toFixed(2)}`, 'Revenue']}
-                      labelFormatter={(val) => new Date(val).toLocaleDateString()}
+                      labelFormatter={(val) => {
+                        if (!val) return '';
+                        const [y, m, d] = val.split('-');
+                        return `${parseInt(m)}/${parseInt(d)}/${y}`;
+                      }}
                     />
                     <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316' }} />
                   </LineChart>
@@ -160,16 +158,21 @@ export default function AdminAnalytics() {
                   <BarChart data={analytics?.revenueByDay || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="_id" 
+                      dataKey="date" 
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       tickFormatter={(val) => {
-                        const d = new Date(val);
-                        return `${d.getMonth()+1}/${d.getDate()}`;
+                        if (!val) return '';
+                        const [y, m, d] = val.split('-');
+                        return `${parseInt(m)}/${parseInt(d)}`;
                       }}
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
                     <Tooltip 
-                      labelFormatter={(val) => new Date(val).toLocaleDateString()}
+                      labelFormatter={(val) => {
+                        if (!val) return '';
+                        const [y, m, d] = val.split('-');
+                        return `${parseInt(m)}/${parseInt(d)}/${y}`;
+                      }}
                     />
                     <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>

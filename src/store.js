@@ -27,13 +27,17 @@ export const useAuthStore = create(
       
       adminLogin: async (email, password) => {
         try {
+          // Clear any stale session first
+          delete api.defaults.headers.common['Authorization'];
+          set({ user: null, token: null, isAuthenticated: false });
           const { data } = await api.post('/auth/admin/login', { email, password });
+          const newToken = data.token;
           set({ 
             user: data.user, 
-            token: data.token, 
+            token: newToken, 
             isAuthenticated: true 
           });
-          api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
           return { success: true };
         } catch (error) {
           return { success: false, error: error.response?.data?.message || 'Login failed' };
@@ -124,18 +128,26 @@ export const useCartStore = create(
 );
 
 // Order Store
-export const useOrderStore = create((set) => ({
-  currentOrder: null,
-  orderHistory: [],
-  
-  setCurrentOrder: (order) => set({ currentOrder: order }),
-  
-  addToHistory: (order) => set((state) => ({
-    orderHistory: [order, ...state.orderHistory]
-  })),
-  
-  clearCurrentOrder: () => set({ currentOrder: null }),
-}));
+export const useOrderStore = create(
+  persist(
+    (set) => ({
+      currentOrder: null,
+      orderHistory: [],
+      
+      setCurrentOrder: (order) => set({ currentOrder: order }),
+      
+      addToHistory: (order) => set((state) => ({
+        orderHistory: [order, ...state.orderHistory]
+      })),
+      
+      clearCurrentOrder: () => set({ currentOrder: null }),
+    }),
+    {
+      name: 'order-storage',
+      partialize: (state) => ({ currentOrder: state.currentOrder }),
+    }
+  )
+);
 
 // Menu Store
 export const useMenuStore = create((set) => ({

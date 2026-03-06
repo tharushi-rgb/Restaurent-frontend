@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, PhoneCall, FileText, Bell, MessageSquare, 
-  CheckCircle2, Clock, AlertCircle, Utensils, HelpCircle
+import { motion } from 'framer-motion';
+import {
+  PhoneCall, FileText, Bell,
+  CheckCircle2, Clock, AlertCircle, Utensils
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useOrderStore } from '../../store';
 import api from '../../api';
+import { PageHeaderDual } from '../../components/CustomerLayout';
 
 const serviceOptions = [
   { id: 'waiter', icon: PhoneCall, label: 'Call Waiter', description: 'Request waiter to your table', color: 'bg-blue-500' },
   { id: 'bill', icon: FileText, label: 'Request Bill', description: 'Get your bill delivered', color: 'bg-green-500' },
   { id: 'water', icon: Utensils, label: 'Refill/Extras', description: 'Water, napkins, cutlery', color: 'bg-cyan-500' },
-  { id: 'help', icon: HelpCircle, label: 'Other Help', description: 'General assistance needed', color: 'bg-purple-500' },
 ];
 
 export default function ServiceRequestPage() {
@@ -24,8 +24,6 @@ export default function ServiceRequestPage() {
   const tableNumber = location.state?.tableNumber || currentOrder?.tableNumber;
 
   const [activeRequests, setActiveRequests] = useState([]);
-  const [customMessage, setCustomMessage] = useState('');
-  const [showMessageBox, setShowMessageBox] = useState(false);
   const [loading, setLoading] = useState({});
 
   const handleServiceRequest = async (type) => {
@@ -36,13 +34,13 @@ export default function ServiceRequestPage() {
 
     // Check if already requested
     if (activeRequests.find(r => r.type === type && r.status === 'pending')) {
-      toast('This request is already being processed', { icon: '⏳' });
+      toast('This request is already being processed');
       return;
     }
 
     setLoading(prev => ({ ...prev, [type]: true }));
     try {
-      if (type === 'waiter' || type === 'water' || type === 'help') {
+      if (type === 'waiter' || type === 'water') {
         await api.post(`/orders/${orderId}/request-waiter`);
       } else if (type === 'bill') {
         await api.post(`/orders/${orderId}/request-bill`);
@@ -53,15 +51,9 @@ export default function ServiceRequestPage() {
         type,
         status: 'pending',
         time: new Date(),
-        message: type === 'help' ? customMessage : ''
       }]);
 
       toast.success(`${serviceOptions.find(s => s.id === type)?.label} request sent!`);
-
-      if (type === 'help') {
-        setShowMessageBox(false);
-        setCustomMessage('');
-      }
     } catch (error) {
       toast.error('Failed to send request');
     } finally {
@@ -81,16 +73,11 @@ export default function ServiceRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center max-w-md mx-auto">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold tracking-tight text-gray-900 ml-2">Service</h1>
-      </header>
+    <div className="h-full bg-white flex flex-col overflow-hidden">
+      {/* Shared header with hamburger sidebar */}
+      <PageHeaderDual title="Service Requests" onBack={() => navigate(-1)} />
 
-      <div className="pt-20 px-6 pb-32">
+      <div className="flex-1 overflow-y-auto px-6 pb-8">
         {/* Table Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -107,7 +94,7 @@ export default function ServiceRequestPage() {
         </motion.div>
 
         {/* Service Options */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="space-y-3 mb-8">
           {serviceOptions.map((option, index) => {
             const Icon = option.icon;
             const requestStatus = getRequestStatus(option.id);
@@ -121,20 +108,16 @@ export default function ServiceRequestPage() {
                 transition={{ delay: index * 0.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  if (option.id === 'help') {
-                    setShowMessageBox(true);
-                  } else {
-                    handleServiceRequest(option.id);
-                  }
+                  handleServiceRequest(option.id);
                 }}
                 disabled={loading[option.id]}
-                className={`relative p-5 rounded-3xl border-2 transition-all text-left ${
+                className={`relative w-full p-5 rounded-3xl border-2 transition-all flex items-center gap-4 ${
                   isRequested
                     ? 'border-green-200 bg-green-50'
                     : 'border-gray-100 bg-white hover:border-orange-200 hover:bg-orange-50'
                 }`}
               >
-                <div className={`w-12 h-12 rounded-2xl ${option.color} flex items-center justify-center mb-3`}>
+                <div className={`w-12 h-12 rounded-2xl ${option.color} flex items-center justify-center flex-shrink-0`}>
                   {loading[option.id] ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : isRequested ? (
@@ -143,11 +126,13 @@ export default function ServiceRequestPage() {
                     <Icon size={22} className="text-white" />
                   )}
                 </div>
-                <h3 className="font-bold text-gray-900 text-sm mb-1">{option.label}</h3>
-                <p className="text-xs text-gray-400 leading-tight">{option.description}</p>
+                <div className="text-left flex-1">
+                  <h3 className="font-bold text-gray-900 text-sm mb-0.5">{option.label}</h3>
+                  <p className="text-xs text-gray-400 leading-tight">{option.description}</p>
+                </div>
                 
                 {isRequested && (
-                  <div className="absolute top-3 right-3">
+                  <div className="flex-shrink-0">
                     <span className="flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
@@ -213,52 +198,6 @@ export default function ServiceRequestPage() {
         </div>
       </div>
 
-      {/* Custom Message Modal */}
-      <AnimatePresence>
-        {showMessageBox && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              className="w-full max-w-md bg-white rounded-t-[40px] p-6 pb-10"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">How can we help?</h2>
-                <button onClick={() => setShowMessageBox(false)} className="p-2 bg-gray-100 rounded-full">
-                  <ChevronLeft size={20} className="rotate-90" />
-                </button>
-              </div>
-              
-              <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="Describe what you need..."
-                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                rows={4}
-              />
-
-              <button
-                onClick={() => handleServiceRequest('help')}
-                disabled={loading.help}
-                className="w-full mt-4 bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading.help ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare size={18} />
-                    Send Request
-                  </>
-                )}
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

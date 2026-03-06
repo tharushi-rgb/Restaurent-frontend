@@ -1,49 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, Heart, Info, Sparkles, QrCode, CheckCircle2, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  UtensilsCrossed,
+  Heart,
+  Sparkles,
+  Menu as MenuIcon,
+  User,
+  ChevronRight,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore, useAuthStore } from '../../store';
 import api from '../../api';
+import { Sidebar } from '../../components/CustomerLayout';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setTable, tableNumber } = useCartStore();
+  const { setTable } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
-  const [manualTable, setManualTable] = useState('');
-  const [tableVerified, setTableVerified] = useState(false);
+  const [tableNumber, setTableNumber] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Auto-detect table from QR code URL parameter (?table=N)
   useEffect(() => {
-    const qrTable = searchParams.get('table');
-    if (qrTable) {
-      verifyTable(parseInt(qrTable));
-    } else if (tableNumber) {
-      setTableVerified(true);
-    }
+    const tableParam = searchParams.get('table');
+    if (tableParam) verifyTable(tableParam);
   }, [searchParams]);
 
   const verifyTable = async (num) => {
-    if (!num || isNaN(num) || num < 1) {
-      toast.error('Invalid table number');
-      return;
-    }
     setVerifying(true);
     try {
       const { data } = await api.get(`/tables/scan/${num}`);
       if (data.table) {
-        setTable(num);
-        setTableVerified(true);
-        toast.success(`Welcome to Table ${num}!`);
+        setTable(parseInt(num));
+        toast.success(`Welcome to Table ${num}`);
       }
     } catch {
-      // Table might not exist yet, still set it (backend creates on order)
-      setTable(num);
-      setTableVerified(true);
-      toast.success(`Seated at Table ${num}`);
+      toast.error('Invalid table number');
     } finally {
       setVerifying(false);
     }
@@ -51,199 +45,178 @@ export default function LandingPage() {
 
   const handleManualEntry = (e) => {
     e.preventDefault();
-    const num = parseInt(manualTable);
-    if (num > 0 && num <= 50) {
-      verifyTable(num);
-      setShowManualEntry(false);
-    } else {
-      toast.error('Please enter a valid table number (1-50)');
-    }
+    if (tableNumber.trim()) verifyTable(tableNumber.trim());
   };
 
-  const handleBrowseMenu = () => {
-    if (!tableVerified) {
-      toast.error('Please scan a QR code or enter your table number first');
-      setShowManualEntry(true);
-      return;
+  const handleHealthProfile = () => {
+    if (isAuthenticated) {
+      navigate('/health-profile');
+    } else {
+      navigate('/register');
     }
-    navigate('/menu');
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <div className="flex-1 px-6 flex flex-col justify-center items-center text-center pt-16">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+    <div className="h-full bg-orange-50/40 relative overflow-hidden flex flex-col">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Top Bar */}
+      <div className="flex-shrink-0 px-5 pt-10 pb-0">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+          >
+            <MenuIcon size={18} className="text-gray-700" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Sparkles size={14} className="text-orange-600" />
+            </div>
+            <span className="text-gray-900 font-bold text-sm tracking-wide">VibeDine</span>
+          </div>
+
+          {isAuthenticated ? (
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full text-gray-700 text-xs font-medium"
+            >
+              <User size={13} />
+              {user?.name?.split(' ')[0]}
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-100 rounded-full text-gray-700 text-xs font-medium"
+              >
+                <User size={12} />
+                Sign In
+              </button>
+              <button
+                onClick={() => navigate('/register')}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-600 rounded-full text-white text-xs font-medium"
+              >
+                Register
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="flex-1 px-6 flex flex-col justify-center items-center text-center py-4">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           className="mb-6"
         >
-          <div className="w-24 h-24 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <Menu size={48} className="text-orange-600" />
+          <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <UtensilsCrossed size={32} className="text-orange-600" />
           </div>
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-2 leading-tight">VibeDine</h2>
-          <p className="text-gray-500 text-lg">Delicious food tailored to your well-being.</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2 leading-tight">
+            VibeDine
+          </h1>
+          <p className="text-gray-500 text-sm leading-relaxed max-w-xs mx-auto">
+            Delicious food tailored to your well-being.
+          </p>
         </motion.div>
 
-        {isAuthenticated && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 bg-orange-50 rounded-2xl"
-          >
-            <p className="text-orange-700 font-medium">Welcome back, {user?.name}!</p>
-          </motion.div>
-        )}
-
-        {/* Table Status Indicator */}
+        {/* Table Entry */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`w-full max-w-sm mb-6 p-4 rounded-2xl border-2 transition-all ${
-            tableVerified
-              ? 'border-green-200 bg-green-50'
-              : 'border-orange-200 bg-orange-50'
-          }`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="w-full max-w-sm mb-5"
         >
-          {verifying ? (
-            <div className="flex items-center justify-center gap-2 text-orange-600">
-              <div className="w-5 h-5 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
-              <span className="font-medium">Verifying table...</span>
-            </div>
-          ) : tableVerified ? (
-            <div className="flex items-center justify-center gap-2 text-green-700">
-              <CheckCircle2 size={20} />
-              <span className="font-bold">Table {tableNumber}</span>
-              <span className="text-green-600 text-sm">— Ready to order</span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex items-center gap-2 text-orange-700">
-                <QrCode size={20} />
-                <span className="font-bold text-sm">Scan the QR code on your table</span>
-              </div>
-              <button
-                onClick={() => setShowManualEntry(!showManualEntry)}
-                className="text-xs text-orange-500 underline underline-offset-2"
-              >
-                Or enter table number manually
-              </button>
-            </div>
-          )}
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5 text-center">
+            Enter your table number to begin
+          </p>
+          <form onSubmit={handleManualEntry} className="flex gap-2">
+            <input
+              type="number"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="Table number"
+              className="flex-1 h-11 px-4 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent shadow-sm"
+            />
+            <button
+              type="submit"
+              disabled={verifying || !tableNumber.trim()}
+              className="h-11 px-6 bg-orange-600 text-white rounded-2xl font-semibold text-sm shadow-sm disabled:opacity-50 active:scale-95 transition-transform"
+            >
+              {verifying ? (
+                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                'Go'
+              )}
+            </button>
+          </form>
         </motion.div>
 
-        {/* Manual Table Entry */}
-        <AnimatePresence>
-          {showManualEntry && !tableVerified && (
-            <motion.form
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              onSubmit={handleManualEntry}
-              className="w-full max-w-sm mb-6 overflow-hidden"
-            >
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={manualTable}
-                    onChange={(e) => setManualTable(e.target.value)}
-                    placeholder="Table number"
-                    className="w-full pl-9 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none"
-                    autoFocus
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-200"
-                >
-                  Go
-                </button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
-
-        <div className="w-full space-y-4 max-w-sm">
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="w-full max-w-sm space-y-2.5"
+        >
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleBrowseMenu}
-            className={`w-full py-4 rounded-2xl font-semibold text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
-              tableVerified
-                ? 'bg-orange-600 text-white shadow-orange-200'
-                : 'bg-gray-200 text-gray-500'
-            }`}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/menu')}
+            className="w-full bg-orange-600 text-white py-3.5 rounded-2xl font-semibold text-sm shadow-lg shadow-orange-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Menu size={20} />
+            <UtensilsCrossed size={18} />
             Browse Menu
           </motion.button>
-          
+
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/health-profile')}
-            className="w-full bg-white text-orange-600 border-2 border-orange-100 py-4 rounded-2xl font-semibold text-lg flex items-center justify-center gap-2"
+            whileTap={{ scale: 0.97 }}
+            onClick={handleHealthProfile}
+            className="w-full bg-white text-orange-600 border-2 border-orange-100 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Heart size={20} />
-            {isAuthenticated ? 'Update Health Profile' : 'Create Health Profile'}
+            <Heart size={18} />
+            {isAuthenticated ? 'My Health Profile' : 'Create Health Profile'}
           </motion.button>
-
-          {isAuthenticated && (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/recommendations')}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 rounded-2xl font-semibold text-lg flex items-center justify-center gap-2 shadow-lg shadow-orange-200"
-            >
-              <Sparkles size={20} />
-              AI Picks For You
-            </motion.button>
-          )}
-        </div>
-
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-10 p-6 bg-green-50 rounded-3xl border border-green-100 text-left max-w-sm"
-        >
-          <h3 className="text-green-800 font-bold mb-2 flex items-center gap-2">
-            <Info size={18} />
-            Why create a profile?
-          </h3>
-          <ul className="text-green-700 text-sm space-y-2">
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
-              Automatic allergy detection & safety alerts
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
-              Personalized meal recommendations
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
-              Track nutritional goals in real-time
-            </li>
-          </ul>
         </motion.div>
 
-        <div className="mt-8 mb-8 space-y-2">
-          {!isAuthenticated ? (
-            <p className="text-gray-400 text-sm">
-              Already have an account?{' '}
-              <button onClick={() => navigate('/login')} className="text-orange-600 font-medium">
-                Login
-              </button>
-            </p>
-          ) : (
-            <p className="text-gray-400 text-sm">
-              <button onClick={() => navigate('/admin/login')} className="text-orange-600 font-medium">
-                Staff Login
-              </button>
-            </p>
-          )}
-        </div>
+        {/* Compact feature highlights */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="w-full max-w-sm mt-5 flex items-center justify-center gap-4 text-[11px] text-gray-400"
+        >
+          <span className="flex items-center gap-1">
+            <Sparkles size={11} className="text-orange-400" />
+            AI Picks
+          </span>
+          <span className="w-1 h-1 bg-gray-300 rounded-full" />
+          <span className="flex items-center gap-1">
+            <Heart size={11} className="text-green-400" />
+            Allergy Safe
+          </span>
+          <span className="w-1 h-1 bg-gray-300 rounded-full" />
+          <span className="flex items-center gap-1">
+            <UtensilsCrossed size={11} className="text-blue-400" />
+            Nutrition Info
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Staff link at bottom */}
+      <div className="flex-shrink-0 pb-6 text-center">
+        <button
+          onClick={() => navigate('/admin/login')}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Staff Portal
+          <ChevronRight size={12} className="inline ml-1" />
+        </button>
       </div>
     </div>
   );
 }
+

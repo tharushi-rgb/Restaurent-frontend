@@ -38,22 +38,20 @@ export default function AdminStaff() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-900 text-white px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-gray-800 rounded-lg">
-              <ChevronLeft size={24} />
-            </button>
-            <h1 className="text-xl font-bold">Staff Management</h1>
-          </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="p-2 bg-orange-600 rounded-lg"
-          >
-            <Plus size={20} />
-          </button>
+      {/* Page Header */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
+          <p className="text-sm text-gray-500">Manage your team members</p>
         </div>
-      </header>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors shadow-sm"
+        >
+          <Plus size={18} />
+          Add Staff
+        </button>
+      </div>
 
       <div className="p-4">
         {loading ? (
@@ -61,68 +59,66 @@ export default function AdminStaff() {
             <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {staff.map((member) => {
               const perf = getPerformanceForStaff(member._id);
               
               return (
                 <motion.div
                   key={member._id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-white rounded-2xl p-4 border border-gray-100"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start gap-4">
+                  {/* Avatar + Status */}
+                  <div className="flex items-center justify-between mb-3">
                     <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                       <User className="text-gray-400" size={24} />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-gray-900">{member.name}</h3>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <Shield size={14} />
-                            {member.role?.replace('_', ' ')}
-                          </p>
-                        </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          member.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                        }`}>
-                          {member.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      
-                      <div className="mt-3 space-y-1">
-                        <p className="text-xs text-gray-400 flex items-center gap-2">
-                          <Mail size={12} />
-                          {member.email}
-                        </p>
-                        {member.phone && (
-                          <p className="text-xs text-gray-400 flex items-center gap-2">
-                            <Phone size={12} />
-                            {member.phone}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Today's Performance */}
-                      {perf && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs font-bold text-gray-500 mb-2">Today's Performance</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <p className="text-lg font-bold text-gray-900">{perf.ordersHandled}</p>
-                              <p className="text-xs text-gray-400">Orders handled</p>
-                            </div>
-                            <div>
-                              <p className="text-lg font-bold text-gray-900">{perf.avgPrepTime || 'N/A'} min</p>
-                              <p className="text-xs text-gray-400">Avg prep time</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      member.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    }`}>
+                      {member.isActive ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
+
+                  {/* Name + Role */}
+                  <h3 className="font-bold text-gray-900 text-sm truncate">{member.name}</h3>
+                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 capitalize">
+                    <Shield size={12} />
+                    {member.role?.replace('_', ' ')}
+                  </p>
+
+                  {/* Contact */}
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs text-gray-400 flex items-center gap-2 truncate">
+                      <Mail size={12} className="flex-shrink-0" />
+                      {member.email}
+                    </p>
+                    {member.phone && (
+                      <p className="text-xs text-gray-400 flex items-center gap-2">
+                        <Phone size={12} className="flex-shrink-0" />
+                        {member.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Today's Performance */}
+                  {perf && (
+                    <div className="mt-3 p-2.5 bg-gray-50 rounded-xl">
+                      <p className="text-[10px] font-bold text-gray-500 mb-1.5">Today's Performance</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-base font-bold text-gray-900">{perf.ordersHandled}</p>
+                          <p className="text-[10px] text-gray-400">Orders</p>
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-gray-900">{perf.avgPrepTime || 'N/A'} min</p>
+                          <p className="text-[10px] text-gray-400">Avg prep</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
